@@ -234,170 +234,79 @@
     };
   </script>
 
-  <h2>Bitácora de Comunas - con gráfico</h2>
-
-  <form id="visita-form">
-    <input type="date" id="fecha">
-    <select id="comuna">
-      <option value="">Selecciona Comuna</option>
-      <option>Freire</option><option>Loncoche</option><option>Nueva Imperial</option><option>Cholchol</option>
-      <option>Pitrufquén</option><option>Carahue</option><option>Toltén</option><option>Padre Las Casas</option>
-      <option>Cunco</option><option>Pucón</option><option>Gorbea</option><option>Temuco</option>
-      <option>Saavedra</option><option>Villarrica</option><option>Teodoro Schmidt</option><option>Curarrehue</option>
-    </select>
-    <textarea id="comentario" placeholder="Comentario" rows="3"></textarea>
-    <button type="submit">Agregar</button>
-  </form>
-
-  <table id="tabla-visitas">
-    <thead>
-      <tr><th>Fecha</th><th>Comuna</th><th>Comentario</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <h3>Visitas por Comuna (Gráfico Pastel)</h3>
-  <canvas id="graficoPastel"></canvas>
+<h3>Gráfico de Visitas por Comuna</h3>
+<canvas id="graficoVisitas"></canvas>
+<div style="margin-top:10px;">
+  <button onclick="alternarTipoGrafico()">Alternar Gráfico (Barras / Pastel)</button>
   <button onclick="descargarGrafico()">Descargar gráfico en PDF</button>
+</div>
 
-  <script>
-    const form = document.getElementById('visita-form');
-    const tabla = document.getElementById('tabla-visitas').querySelector('tbody');
-    let visitas = [];
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  let tipoGrafico = 'bar';
+  let graficoInstancia;
 
-    function actualizarTabla() {
-      tabla.innerHTML = "";
-      visitas.forEach(v => {
-        const fila = tabla.insertRow();
-        fila.insertCell(0).textContent = v.fecha;
-        fila.insertCell(1).textContent = v.comuna;
-        fila.insertCell(2).textContent = v.comentario;
-      });
-    }
-
-    function actualizarGrafico() {
-      const conteo = {};
-      visitas.forEach(v => {
-        conteo[v.comuna] = (conteo[v.comuna] || 0) + 1;
-      });
-
-      const ctx = document.getElementById('graficoPastel').getContext('2d');
-      if (window.grafico) window.grafico.destroy();
-      window.grafico = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: Object.keys(conteo),
-          datasets: [{
-            data: Object.values(conteo),
-            backgroundColor: [
-              '#3498db','#f1c40f','#e67e22','#2ecc71','#e74c3c','#1abc9c',
-              '#9b59b6','#34495e','#7f8c8d','#fd79a8','#00cec9','#6c5ce7'
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom' } }
-        }
-      });
-    }
-
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const fecha = document.getElementById('fecha').value;
-      const comuna = document.getElementById('comuna').value;
-      const comentario = document.getElementById('comentario').value;
-      if (!fecha || !comuna) return;
-      visitas.push({ fecha, comuna, comentario });
-      actualizarTabla();
-      actualizarGrafico();
-      form.reset();
+  function actualizarGraficoDesdeTabla() {
+    const rows = document.querySelectorAll('#tabla-visitas tbody tr');
+    const conteo = {};
+    rows.forEach(row => {
+      const comuna = row.cells[1]?.textContent?.trim();
+      if (comuna) {
+        conteo[comuna] = (conteo[comuna] || 0) + 1;
+      }
     });
+    const labels = Object.keys(conteo);
+    const datos = Object.values(conteo);
 
-    function descargarGrafico() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("Gráfico de visitas por comuna", 10, 10);
-      const canvas = document.getElementById("graficoPastel");
-      const imgData = canvas.toDataURL("image/png");
-      doc.addImage(imgData, "PNG", 10, 20, 180, 120);
-      doc.save("grafico_visitas_comunas.pdf");
-    }
-  </script>
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bitácora con gráfico agregado</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    canvas { max-width: 400px; margin: 20px auto; display: block; }
-  </style>
-</head>
-<body>
-  <!-- Este bloque se debe insertar al final de tu HTML existente -->
-
-  <h3>Gráfico de Visitas por Comuna</h3>
-  <canvas id="graficoPastel"></canvas>
-  <button onclick="descargarGrafico()">Descargar gráfico en PDF</button>
-
-  <script>
-    const canvasGrafico = document.getElementById('graficoPastel');
-    let visitasRegistradas = [];
-
-    function actualizarGraficoDesdeTabla() {
-      const rows = document.querySelectorAll('#tabla-visitas tbody tr');
-      const conteo = {};
-      rows.forEach(row => {
-        const comuna = row.cells[1]?.textContent?.trim();
-        if (comuna) {
-          conteo[comuna] = (conteo[comuna] || 0) + 1;
-        }
-      });
-      const labels = Object.keys(conteo);
-      const datos = Object.values(conteo);
-      if (window.miGrafico) window.miGrafico.destroy();
-      window.miGrafico = new Chart(canvasGrafico.getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: datos,
-            backgroundColor: [
-              '#3498db','#f1c40f','#e67e22','#2ecc71','#e74c3c','#1abc9c',
-              '#9b59b6','#34495e','#7f8c8d','#fd79a8','#00cec9','#6c5ce7'
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom' } }
-        }
-      });
-    }
-
-    function descargarGrafico() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("Gráfico de visitas por comuna", 10, 10);
-      const imgData = canvasGrafico.toDataURL("image/png");
-      doc.addImage(imgData, "PNG", 10, 20, 180, 120);
-      doc.save("grafico_visitas_comunas.pdf");
-    }
-
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        actualizarGraficoDesdeTabla();
-        const form = document.getElementById('visita-form');
-        if (form) {
-          form.addEventListener('submit', () => setTimeout(actualizarGraficoDesdeTabla, 100));
-        }
-      }, 500);
+    const ctx = document.getElementById('graficoVisitas').getContext('2d');
+    if (graficoInstancia) graficoInstancia.destroy();
+    graficoInstancia = new Chart(ctx, {
+      type: tipoGrafico,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Cantidad de Visitas',
+          data: datos,
+          backgroundColor: [
+            '#3498db','#f1c40f','#e67e22','#2ecc71','#e74c3c','#1abc9c',
+            '#9b59b6','#34495e','#7f8c8d','#fd79a8','#00cec9','#6c5ce7'
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: tipoGrafico === 'pie' ? 'bottom' : 'top' } },
+        indexAxis: tipoGrafico === 'bar' ? 'x' : undefined
+      }
     });
-  </script>
+  }
+
+  function alternarTipoGrafico() {
+    tipoGrafico = tipoGrafico === 'bar' ? 'pie' : 'bar';
+    actualizarGraficoDesdeTabla();
+  }
+
+  function descargarGrafico() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Gráfico de visitas por comuna", 10, 10);
+    const canvas = document.getElementById("graficoVisitas");
+    const imgData = canvas.toDataURL("image/png");
+    doc.addImage(imgData, "PNG", 10, 20, 180, 120);
+    doc.save("grafico_visitas_comunas.pdf");
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      actualizarGraficoDesdeTabla();
+      const form = document.getElementById('visita-form');
+      if (form) {
+        form.addEventListener('submit', () => setTimeout(actualizarGraficoDesdeTabla, 100));
+      }
+    }, 500);
+  });
+</script>
 
 </body>
 </html>
